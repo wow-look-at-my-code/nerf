@@ -22,7 +22,9 @@ jobs:
 
       - name: Install bats (Linux/macOS)
         if: runner.os != 'Windows'
-        run: brew install bats-core bats-support bats-assert
+        run: |
+          brew tap wow-look-at-my-code/ext-pkgs
+          brew install bats-core bats-support bats-assert
 
       - name: Install bats (Windows)
         if: runner.os == 'Windows'
