@@ -6,6 +6,7 @@ on:
 
 jobs:
   build-and-test:
+    timeout-minutes: 2
     strategy:
       fail-fast: false
       matrix:
@@ -24,7 +25,10 @@ jobs:
 
       - name: Install moreutils (macOS)
         if: runner.os == 'macOS'
-        run: brew install moreutils
+        run: |
+          brew install moreutils
+          sudo cp test/mock-docker /usr/local/bin/docker
+          sudo chmod +x /usr/local/bin/docker
 
       - name: Build
         run: make
@@ -33,6 +37,7 @@ jobs:
         run: make test
 
   all-checks-passed:
+    timeout-minutes: 2
     needs: [build-and-test]
     if: always()
     runs-on: ubuntu-latest
