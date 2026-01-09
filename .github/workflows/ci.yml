@@ -40,6 +40,11 @@ jobs:
         run: |
           export PATH="$PWD/bin/$(go env GOOS)-$(go env GOARCH)/commands:$PATH"
           export BATS_LIB_PATH="$(brew --prefix)/lib/bats:$PWD/test${BATS_LIB_PATH:+:$BATS_LIB_PATH}"
+          echo "PATH: $PATH"
+          echo "BATS_LIB_PATH: $BATS_LIB_PATH"
+          which bats || echo "bats not found"
+          which cat || echo "cat not found"
+          ls -la bin/*/commands/ || true
           bats --recursive src/commands/
 
   all-checks-passed:
