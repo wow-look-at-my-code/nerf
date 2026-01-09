@@ -19,6 +19,8 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - uses: Homebrew/actions/setup-homebrew@master
+
       - name: Install dependencies
         run: |
           brew tap wow-look-at-my-code/ext-pkgs
