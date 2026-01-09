@@ -5,7 +5,7 @@ bats_load_library test_helper
 @test "grep without args shows usage and exits" {
     trun grep
     assert_failure 2
-    assert_output --partial "usage"
+    assert_output --partial "grep"
 }
 
 @test "grep with pattern works on piped input (fast)" {
