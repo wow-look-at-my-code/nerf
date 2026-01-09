@@ -6,7 +6,13 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
+
+	"path_prefix/src/common"
 )
+
+func init() {
+	common.Register("find", Find)
+}
 
 var dangerousFlags = []string{
 	"-delete",

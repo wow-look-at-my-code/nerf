@@ -8,6 +8,10 @@ import (
 	"path_prefix/src/common"
 )
 
+func init() {
+	common.Register("fdfind", Fdfind)
+}
+
 func Fdfind() {
 	cmd := "fd"
 	if strings.HasSuffix(os.Args[0], "fdfind") {
