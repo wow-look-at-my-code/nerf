@@ -36,9 +36,10 @@ jobs:
           sudo chmod +x /usr/local/bin/docker
 
       - name: Test
+        timeout-minutes: 1
         run: |
           export PATH="$PWD/bin/$(go env GOOS)-$(go env GOARCH)/commands:$PATH"
-          export BATS_LIB_PATH="$(brew --prefix)/lib:$PWD/test"
+          export BATS_LIB_PATH="$(brew --prefix)/lib:$PWD/test${BATS_LIB_PATH:+:$BATS_LIB_PATH}"
           bats --recursive src/commands/
 
   all-checks-passed:
