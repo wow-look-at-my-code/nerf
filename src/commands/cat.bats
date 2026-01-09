@@ -10,7 +10,7 @@ bats_load_library test_helper
 }
 
 @test "cat passes through when piped" {
-    trun bash -c 'cat /etc/passwd | head -1'
+    trun bash -c 'echo "hello world" | cat'
     assert_success
-    assert_output --partial "root"
+    assert_output "hello world"
 }
