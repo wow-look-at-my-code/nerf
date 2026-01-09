@@ -19,22 +19,23 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install moreutils (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y moreutils
-
-      - name: Install moreutils (macOS)
-        if: runner.os == 'macOS'
+      - name: Install dependencies
         run: |
-          brew install moreutils
-          sudo cp test/mock-docker /usr/local/bin/docker
-          sudo chmod +x /usr/local/bin/docker
+          brew tap wow-look-at-my-code/ext-pkgs
+          brew install bats-core bats-support bats-assert fd
 
       - name: Build
         run: make
 
+      - name: Setup mock docker
+        run: |
+          sudo cp test/mock-docker /usr/local/bin/docker
+          sudo chmod +x /usr/local/bin/docker
+
       - name: Test
-        run: make test
+        run: |
+          export PATH="$PWD/bin/$(go env GOOS)-$(go env GOARCH)/commands:$PATH"
+          bats --recursive src/commands/
 
   all-checks-passed:
     timeout-minutes: 2
