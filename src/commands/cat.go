@@ -9,6 +9,10 @@ import (
 	"path_prefix/src/common"
 )
 
+func init() {
+	common.Register("cat", Cat)
+}
+
 const (
 	maxLines  = 50
 	maxTokens = 1000

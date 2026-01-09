@@ -9,8 +9,6 @@ make        # Build all binaries
 make test   # Run bats tests (requires bats-core, bats-support, bats-assert)
 ```
 
-To build a single binary: `go build -o <cmd> ./src/<cmd>.go`
-
 Tests require `CLAUDECODE=1` environment variable to activate wrapper behavior.
 
 ## Project Purpose

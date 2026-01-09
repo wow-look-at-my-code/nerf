@@ -1,0 +1,2 @@
+#!/bin/sh
+echo "docker-compose version 2.0.0"

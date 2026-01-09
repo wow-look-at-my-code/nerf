@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
-	"path_prefix/src/commands"
+	_ "path_prefix/src/commands"
 	"path_prefix/src/common"
 )
 
@@ -15,32 +17,23 @@ func main() {
 		common.ExecReal(cmd, os.Args[1:])
 	}
 
-	switch cmd {
-	case "cat":
-		commands.Cat()
-	case "docker":
-		commands.Docker()
-	case "find":
-		commands.Find()
-	case "grep":
-		commands.Grep()
-	case "head":
-		commands.Head()
-	case "sed":
-		commands.Sed()
-	case "sleep":
-		commands.Sleep()
-	case "tail":
-		commands.Tail()
-	case "fd", "fdfind":
-		commands.Fdfind()
-	default:
-		fmt.Fprintf(os.Stderr, "nerf: unknown command %q\n", cmd)
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Usage: Create a symlink with a supported command name pointing to this binary.")
-		fmt.Fprintln(os.Stderr, "Example: ln -s /path/to/nerf /path/to/cat")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Supported commands: cat, docker, fd, fdfind, find, grep, head, sed, sleep, tail")
-		os.Exit(1)
+	if handler, ok := common.Handlers[cmd]; ok {
+		handler()
+		return
 	}
+
+	// Build sorted list of supported commands
+	cmds := make([]string, 0, len(common.Handlers))
+	for k := range common.Handlers {
+		cmds = append(cmds, k)
+	}
+	sort.Strings(cmds)
+
+	fmt.Fprintf(os.Stderr, "nerf: unknown command %q\n", cmd)
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Usage: Create a symlink with a supported command name pointing to this binary.")
+	fmt.Fprintln(os.Stderr, "Example: ln -s /path/to/nerf /path/to/cat")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintf(os.Stderr, "Supported commands: %s\n", strings.Join(cmds, ", "))
+	os.Exit(1)
 }

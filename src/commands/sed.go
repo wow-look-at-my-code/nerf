@@ -8,6 +8,10 @@ import (
 	"path_prefix/src/common"
 )
 
+func init() {
+	common.Register("sed", Sed)
+}
+
 func Sed() {
 	// Check for -i flag (in-place editing) - always block
 	for _, arg := range os.Args[1:] {

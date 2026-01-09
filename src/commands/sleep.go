@@ -1,6 +1,14 @@
 package commands
 
-import "time"
+import (
+	"time"
+
+	"path_prefix/src/common"
+)
+
+func init() {
+	common.Register("sleep", Sleep)
+}
 
 func Sleep() {
 	// Sleep 1 second max to prevent tight loops but don't waste time

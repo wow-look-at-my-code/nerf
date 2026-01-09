@@ -2,32 +2,32 @@
 
 bats_load_library test_helper
 
-@test "fdfind -x is blocked" {
-    trun fdfind -x echo {} /tmp
+@test "fd -x is blocked" {
+    trun fd -x echo {} /tmp
     assert_failure
     assert_output --partial "not allowed"
 }
 
-@test "fdfind --exec is blocked" {
-    trun fdfind --exec echo {} /tmp
+@test "fd --exec is blocked" {
+    trun fd --exec echo {} /tmp
     assert_failure
     assert_output --partial "not allowed"
 }
 
-@test "fdfind -X is blocked" {
-    trun fdfind -X echo {} /tmp
+@test "fd -X is blocked" {
+    trun fd -X echo {} /tmp
     assert_failure
     assert_output --partial "not allowed"
 }
 
-@test "fdfind --exec-batch is blocked" {
-    trun fdfind --exec-batch echo {} /tmp
+@test "fd --exec-batch is blocked" {
+    trun fd --exec-batch echo {} /tmp
     assert_failure
     assert_output --partial "not allowed"
 }
 
-@test "fdfind without exec flags works" {
-    trun fdfind passwd /etc --max-depth 1
+@test "fd without exec flags works" {
+    trun fd passwd /etc --max-depth 1
     assert_success
     assert_output --partial "passwd"
 }

@@ -30,10 +30,10 @@ jobs:
       - name: Build
         run: make
 
-      - name: Setup mock docker
+      - name: Setup mocks
         run: |
-          sudo cp test/mock-docker /usr/local/bin/docker
-          sudo chmod +x /usr/local/bin/docker
+          sudo cp test/mocks/* /usr/local/bin/
+          sudo chmod +x /usr/local/bin/docker /usr/local/bin/docker-compose /usr/local/bin/gh /usr/local/bin/fdfind
 
       - name: Test
         timeout-minutes: 1
