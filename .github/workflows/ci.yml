@@ -20,6 +20,7 @@ jobs:
           go-version-file: go.mod
 
       - uses: Homebrew/actions/setup-homebrew@master
+        if: runner.os == 'Linux'
 
       - name: Install dependencies
         run: |
@@ -37,6 +38,7 @@ jobs:
       - name: Test
         run: |
           export PATH="$PWD/bin/$(go env GOOS)-$(go env GOARCH)/commands:$PATH"
+          export BATS_LIB_PATH="$(brew --prefix)/lib:$PWD/test"
           bats --recursive src/commands/
 
   all-checks-passed:
