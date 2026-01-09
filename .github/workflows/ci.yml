@@ -31,3 +31,15 @@ jobs:
 
       - name: Test
         run: make test
+
+  all-checks-passed:
+    needs: [build-and-test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.build-and-test.result }}" != "success" ]]; then
+            echo "build-and-test failed: ${{ needs.build-and-test.result }}"
+            exit 1
+          fi
