@@ -3,8 +3,7 @@
 bats_load_library test_helper
 
 @test "cat truncates large files in terminal" {
-    # Use script to simulate a terminal
-    run script -q -c 'cat /etc/services' /dev/null
+    run_in_pty cat /etc/services
     assert_success
     assert_output --partial "truncated"
     assert_output --partial "Use the Read tool"
