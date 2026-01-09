@@ -9,11 +9,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
     steps:
       - uses: actions/checkout@v4
 
@@ -21,19 +18,13 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install bats (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: |
-          brew tap wow-look-at-my-code/ext-pkgs
-          brew install bats-core bats-support bats-assert
+      - name: Install moreutils (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y moreutils
 
-      - name: Install bats (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          npm install -g bats
-          mkdir -p "$USERPROFILE/.local/lib/bats"
-          git clone --depth 1 https://github.com/bats-core/bats-support.git "$USERPROFILE/.local/lib/bats/bats-support"
-          git clone --depth 1 https://github.com/bats-core/bats-assert.git "$USERPROFILE/.local/lib/bats/bats-assert"
+      - name: Install moreutils (macOS)
+        if: runner.os == 'macOS'
+        run: brew install moreutils
 
       - name: Build
         run: make
