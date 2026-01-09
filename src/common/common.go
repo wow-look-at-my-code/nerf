@@ -17,10 +17,10 @@ func Init() string {
 	}
 	selfDir := filepath.Dir(execPath)
 
-	// Filter our directory out of PATH to prevent infinite recursion
+	// Filter our directory and subdirectories out of PATH to prevent infinite recursion
 	var filtered []string
 	for _, p := range strings.Split(os.Getenv("PATH"), ":") {
-		if p != selfDir {
+		if !strings.HasPrefix(p, selfDir) {
 			filtered = append(filtered, p)
 		}
 	}
