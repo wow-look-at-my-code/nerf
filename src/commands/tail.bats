@@ -2,9 +2,10 @@
 
 bats_load_library test_helper
 
-@test "tail --help works" {
-    trun tail --help
+@test "tail with -n works" {
+    trun tail -n 1 test/fixtures/sample.txt
     assert_success
+    assert_output "baz"
 }
 
 @test "tail with piped input works (fast)" {

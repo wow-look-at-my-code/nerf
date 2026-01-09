@@ -2,9 +2,10 @@
 
 bats_load_library test_helper
 
-@test "head --help works" {
-    trun head --help
+@test "head with -n works" {
+    trun head -n 1 test/fixtures/sample.txt
     assert_success
+    assert_output "foo"
 }
 
 @test "head with piped input works (fast)" {

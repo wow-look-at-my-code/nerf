@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    timeout-minutes: 2
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: Homebrew/actions/setup-homebrew@master
+        if: runner.os == 'Linux'
+
+      - name: Install dependencies
+        run: |
+          brew tap wow-look-at-my-code/ext-pkgs
+          brew install bats-core bats-support bats-assert fd coreutils
+
+      - name: Build
+        run: make
+
+      - name: Setup mock docker
+        run: |
+          sudo cp test/mock-docker /usr/local/bin/docker
+          sudo chmod +x /usr/local/bin/docker
+
+      - name: Test
+        timeout-minutes: 1
+        run: |
+          export PATH="$PWD/bin/$(go env GOOS)-$(go env GOARCH)/commands:$PATH"
+          export BATS_LIB_PATH="$(brew --prefix)/lib/bats:$PWD/test${BATS_LIB_PATH:+:$BATS_LIB_PATH}"
+          echo "PATH: $PATH"
+          echo "BATS_LIB_PATH: $BATS_LIB_PATH"
+          which bats || echo "bats not found"
+          which cat || echo "cat not found"
+          ls -la bin/*/commands/ || true
+          bats --recursive src/commands/
+
+  all-checks-passed:
+    timeout-minutes: 2
+    needs: [build-and-test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.build-and-test.result }}" != "success" ]]; then
+            echo "build-and-test failed: ${{ needs.build-and-test.result }}"
+            exit 1
+          fi
