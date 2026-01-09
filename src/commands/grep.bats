@@ -25,3 +25,9 @@ bats_load_library test_helper
     assert_success
     assert_output "testestest"
 }
+
+@test "grep returns failure for pattern not in file" {
+    trun grep notfound test/fixtures/sample.txt
+    assert_failure 1
+    assert_output ""
+}
