@@ -1,0 +1,22 @@
+services:
+  test:
+    build:
+      context: ..
+      dockerfile_inline: |
+        FROM homebrew/brew:latest
+
+        # Install dependencies
+        RUN brew tap wow-look-at-my-code/homebrew-ext-pkgs && \
+            brew install bats-core bats-support bats-assert fd && \
+            sudo mkdir -p /usr/lib/bats && \
+            sudo ln -s /home/linuxbrew/.linuxbrew/lib/bats/bats-support /usr/lib/bats/bats-support && \
+            sudo ln -s /home/linuxbrew/.linuxbrew/lib/bats/bats-assert /usr/lib/bats/bats-assert
+
+        COPY test/mock-docker /usr/local/bin/docker
+
+        WORKDIR /app
+    volumes:
+      - ..:/app:ro
+    environment:
+      - BATS_LIB_PATH=/usr/lib/bats:/app/test
+    command: ["bats", "--recursive", "/app/src/commands/"]

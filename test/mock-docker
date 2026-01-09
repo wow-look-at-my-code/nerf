@@ -1,0 +1,2 @@
+#!/bin/bash
+echo "Docker version 24.0.0, build abcdef0"
