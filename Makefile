@@ -39,7 +39,8 @@ $(eval $(call PLATFORM_RULES,darwin,arm64))
 $(eval $(call PLATFORM_RULES,windows,amd64))
 
 # Triplet phony targets
-linux-amd64 darwin-arm64 windows-amd64: %: bin/%/nerf $$(call SYMLINKS,%)
+linux-amd64 windows-amd64: %: bin/%/nerf $$(call SYMLINKS,%)
+darwin-arm64: bin/darwin-arm64/nerf $$(call SYMLINKS,darwin-arm64) bin/macos-arm64
 
 # Alias for macOS
 bin/macos-arm64: bin/darwin-arm64/nerf
