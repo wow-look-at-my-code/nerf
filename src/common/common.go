@@ -62,13 +62,13 @@ func ExecReal(cmd string, args []string) {
 		os.Exit(127)
 	}
 	argv := append([]string{cmd}, args...)
-	syscall.Exec(path, argv, os.Environ())
+	syscall.Exec(path, argv, environ())
 }
 
 // Exec execs the given path, never returns
 func Exec(path string, args []string) {
 	argv := append([]string{path}, args...)
-	err := syscall.Exec(path, argv, os.Environ())
+	err := syscall.Exec(path, argv, environ())
 	if err != nil {
 		os.Stderr.WriteString("exec failed: " + err.Error() + "\n")
 		os.Exit(1)
