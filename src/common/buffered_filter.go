@@ -14,15 +14,30 @@ const bufferTimeout = 5 * time.Second
 // command on the buffered input (if complete within timeout) or dumps the buffer
 // and passes through remaining stdin.
 func RunBufferedFilter(cmd string) {
+	// If no non-option arguments, pass through (e.g., grep with no pattern shows usage)
+	hasNonOption := false
+	for _, arg := range os.Args[1:] {
+		if len(arg) > 0 && arg[0] != '-' {
+			hasNonOption = true
+			break
+		}
+	}
+	if !hasNonOption {
+		ExecReal(cmd, os.Args[1:])
+		return
+	}
+
 	// If file arguments are provided, pass through directly (no buffering needed)
 	if HasFileArgs(os.Args[1:]) {
 		ExecReal(cmd, os.Args[1:])
+		return
 	}
 
 	// If stdin is not a pipe, just run command normally
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeNamedPipe) == 0 {
 		ExecReal(cmd, os.Args[1:])
+		return
 	}
 
 	// Buffer stdin with timeout
