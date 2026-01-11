@@ -47,4 +47,4 @@ bin/macos-arm64: bin/darwin-arm64/nerf
 
 test: linux-amd64
 	timeout 60 docker compose -f test/docker-compose.yml build --quiet
-	timeout 60 docker compose -f test/docker-compose.yml run --rm -T test $(BATS_FILES)
+	timeout 60 docker compose -f test/docker-compose.yml run --rm -T test $(BATS_FILES) </dev/null
