@@ -15,6 +15,15 @@ func init() {
 func Zsh() {
 	args := os.Args[1:]
 
+	// Check for login shell flag - skip injection as login shells read config files
+	// that may not be compatible with strict mode
+	for _, arg := range args {
+		if arg == "-l" || arg == "--login" {
+			common.ExecReal("zsh", args)
+			return
+		}
+	}
+
 	// Find -c flag and its command
 	for i, arg := range args {
 		if arg == "-c" && i+1 < len(args) {
@@ -23,13 +32,13 @@ func Zsh() {
 			// Skip if already has safety options
 			if strings.HasPrefix(cmd, "set -e") || strings.Contains(cmd, "set -euo pipefail") {
 				common.ExecReal("zsh", args)
-				return // ExecReal replaces process, but return for safety
+				return
 			}
 
 			// Inject set -euo pipefail at the start
 			args[i+1] = "set -euo pipefail; " + cmd
 			common.ExecReal("zsh", args)
-			return // ExecReal replaces process, but return for safety
+			return
 		}
 	}
 
