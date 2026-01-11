@@ -86,7 +86,8 @@ func Find() {
 
 	// Build final args: fd [options] [pattern] [path...]
 	if pattern != "" {
-		fdArgs = append(fdArgs, pattern)
+		// Use glob mode (-g) since find -name uses glob patterns
+		fdArgs = append(fdArgs, "-g", pattern)
 	}
 	fdArgs = append(fdArgs, paths...)
 

@@ -37,9 +37,13 @@ func findSubcommand(args []string) string {
 func Docker() {
 	args := os.Args[1:]
 
+	// DEBUG
+	fmt.Fprintf(os.Stderr, "DEBUG docker: args=%v\n", args)
+
 	// Check for compose subcommand
 	if len(args) >= 1 && args[0] == "compose" {
 		subcmd := findSubcommand(args[1:])
+		fmt.Fprintf(os.Stderr, "DEBUG docker: subcmd=%q\n", subcmd)
 
 		if subcmd == "restart" {
 			restartError()

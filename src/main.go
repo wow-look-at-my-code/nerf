@@ -13,11 +13,16 @@ import (
 func main() {
 	cmd := common.Init()
 
+	fmt.Fprintf(os.Stderr, "DEBUG main: cmd=%q CLAUDECODE=%q\n", cmd, os.Getenv("CLAUDECODE"))
+
 	if !common.ShouldWrap() {
+		fmt.Fprintf(os.Stderr, "DEBUG main: passthrough (no CLAUDECODE)\n")
 		common.ExecReal(cmd, os.Args[1:])
+		return // ExecReal replaces process, but return for safety
 	}
 
 	if handler, ok := common.Handlers[cmd]; ok {
+		fmt.Fprintf(os.Stderr, "DEBUG main: calling handler for %q\n", cmd)
 		handler()
 		return
 	}

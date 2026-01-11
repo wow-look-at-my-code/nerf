@@ -24,7 +24,7 @@ current-triplet: $(CURRENT_OS)-$(CURRENT_ARCH)
 
 # Platform rules template - $(1)=GOOS, $(2)=GOARCH
 define PLATFORM_RULES
-bin/$(1)-$(2)/nerf: $$(GO_FILES)
+bin/$(1)-$(2)/nerf: $$(GO_FILES) | $$(BATS_FILES)
 	@mkdir -p $$(dir $$@)
 	GOOS=$(1) GOARCH=$(2) go build -o $$@ ./$$(SRCDIR)/
 
@@ -46,5 +46,5 @@ bin/macos-arm64: bin/darwin-arm64/nerf
 	ln -sfn darwin-arm64 bin/macos-arm64
 
 test: linux-amd64
-	chronic timeout 60 docker compose -f test/docker-compose.yml build
-	timeout 60 docker compose -f test/docker-compose.yml run --rm test $(BATS_FILES)
+	timeout 60 docker compose -f test/docker-compose.yml build --quiet
+	timeout 60 docker compose -f test/docker-compose.yml run --rm -T test $(BATS_FILES)

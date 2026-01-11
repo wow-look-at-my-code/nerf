@@ -6,7 +6,7 @@ services:
         FROM alpine:latest
 
         # Install dependencies
-        RUN apk add --no-cache bash bats bats-support bats-assert fd util-linux
+        RUN apk add --no-cache bash zsh bats bats-support bats-assert fd util-linux
 
         COPY test/mocks/* /usr/local/bin/
 
@@ -16,4 +16,5 @@ services:
     environment:
       BATS_LIB_PATH: /usr/lib/bats:/app/test
       PATH: /app/bin/linux-amd64/commands:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
+      CLAUDECODE: "1"
     entrypoint: ["bats"]
