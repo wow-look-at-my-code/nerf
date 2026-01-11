@@ -15,6 +15,15 @@ func init() {
 func Bash() {
 	args := os.Args[1:]
 
+	// Check for login shell flag - skip injection as login shells read config files
+	// that may not be compatible with strict mode
+	for _, arg := range args {
+		if arg == "-l" || arg == "--login" {
+			common.ExecReal("bash", args)
+			return
+		}
+	}
+
 	// Find -c flag and its command
 	for i, arg := range args {
 		if arg == "-c" && i+1 < len(args) {
