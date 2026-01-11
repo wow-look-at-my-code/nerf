@@ -16,5 +16,4 @@ services:
     environment:
       BATS_LIB_PATH: /usr/lib/bats:/app/test
       PATH: /app/bin/linux-amd64/commands:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
-      CLAUDECODE: "1"
     entrypoint: ["bats"]
