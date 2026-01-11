@@ -64,6 +64,7 @@ func RunBufferedFilter(cmd string) {
 		// Timeout - dump buffer and passthrough
 		os.Stdout.Write(buffer)
 		io.Copy(os.Stdout, os.Stdin)
+		os.Exit(0)
 	}
 }
 
