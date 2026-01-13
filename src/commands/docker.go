@@ -69,7 +69,12 @@ func Docker() {
 		newArgs := make([]string, 0, len(args)+1)
 		newArgs = append(newArgs, args[0])
 		newArgs = append(newArgs, "--progress=quiet")
-		newArgs = append(newArgs, args[1:]...)
+		// Filter out --no-cache flag
+		for _, arg := range args[1:] {
+			if arg != "--no-cache" {
+				newArgs = append(newArgs, arg)
+			}
+		}
 		args = newArgs
 	}
 
