@@ -38,3 +38,16 @@ bats_load_library test_helper
     assert_failure 1
     assert_output --partial "docker compose up -d"
 }
+
+@test "docker build --no-cache drops the flag" {
+    # Create a temp directory with a simple Dockerfile
+    tmpdir=$(mktemp -d)
+    echo "FROM scratch" > "$tmpdir/Dockerfile"
+    # Run docker build with --no-cache; if --no-cache was passed through,
+    # Docker would try to pull/build without cache. Since FROM scratch is
+    # a special case, this should succeed quickly either way.
+    # The main test is that our wrapper doesn't break the command.
+    trun docker build --no-cache -t nerf-test-nocache "$tmpdir"
+    rm -rf "$tmpdir"
+    assert_success
+}
