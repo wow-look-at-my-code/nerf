@@ -34,16 +34,12 @@ func findSubcommand(args []string) string {
 	return ""
 }
 
-func Docker() {
+func Docker() common.HandlerResult {
 	args := os.Args[1:]
-
-	// DEBUG
-	fmt.Fprintf(os.Stderr, "DEBUG docker: args=%v\n", args)
 
 	// Check for compose subcommand
 	if len(args) >= 1 && args[0] == "compose" {
 		subcmd := findSubcommand(args[1:])
-		fmt.Fprintf(os.Stderr, "DEBUG docker: subcmd=%q\n", subcmd)
 
 		if subcmd == "restart" {
 			restartError()
@@ -83,4 +79,5 @@ func Docker() {
 	}
 
 	common.ExecReal("docker", args)
+	return common.Handled
 }

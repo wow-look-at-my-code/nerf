@@ -6,6 +6,6 @@ func init() {
 	common.Register("head", Head)
 }
 
-func Head() {
-	common.RunBufferedFilter("head")
+func Head() common.HandlerResult {
+	return common.RunBufferedFilter("head")
 }

@@ -35,7 +35,7 @@ func findDockerComposeSubcommand(args []string) string {
 }
 
 // DockerCompose handles the standalone docker-compose command
-func DockerCompose() {
+func DockerCompose() common.HandlerResult {
 	args := os.Args[1:]
 
 	subcmd := findDockerComposeSubcommand(args)
@@ -65,4 +65,5 @@ func DockerCompose() {
 	}
 
 	common.ExecReal("docker-compose", args)
+	return common.Handled
 }

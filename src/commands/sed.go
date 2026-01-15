@@ -12,7 +12,7 @@ func init() {
 	common.Register("sed", Sed)
 }
 
-func Sed() {
+func Sed() common.HandlerResult {
 	// Check for -i flag (in-place editing) - always block
 	for _, arg := range os.Args[1:] {
 		if arg == "-i" || strings.HasPrefix(arg, "-i") {
@@ -26,7 +26,7 @@ func Sed() {
 	}
 
 	// Piped input is allowed - pass through to real sed
-	common.ExecReal("sed", os.Args[1:])
+	return common.PassThru
 }
 
 func blockSed() {

@@ -13,7 +13,7 @@ const bufferTimeout = 5 * time.Second
 // RunBufferedFilter buffers stdin with a timeout, then either runs the filter
 // command on the buffered input (if complete within timeout) or dumps the buffer
 // and passes through remaining stdin.
-func RunBufferedFilter(cmd string) {
+func RunBufferedFilter(cmd string) HandlerResult {
 	// If no non-option arguments, pass through (e.g., grep with no pattern shows usage)
 	hasNonOption := false
 	for _, arg := range os.Args[1:] {
@@ -23,21 +23,18 @@ func RunBufferedFilter(cmd string) {
 		}
 	}
 	if !hasNonOption {
-		ExecReal(cmd, os.Args[1:])
-		return
+		return PassThru
 	}
 
 	// If file arguments are provided, pass through directly (no buffering needed)
 	if HasFileArgs(os.Args[1:]) {
-		ExecReal(cmd, os.Args[1:])
-		return
+		return PassThru
 	}
 
 	// If stdin is not a pipe, just run command normally
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeNamedPipe) == 0 {
-		ExecReal(cmd, os.Args[1:])
-		return
+		return PassThru
 	}
 
 	// Buffer stdin with timeout
@@ -66,6 +63,7 @@ func RunBufferedFilter(cmd string) {
 		io.Copy(os.Stdout, os.Stdin)
 		os.Exit(0)
 	}
+	return Handled
 }
 
 func runFilter(cmd string, args []string, input []byte) {

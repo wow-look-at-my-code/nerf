@@ -11,7 +11,7 @@ func init() {
 	common.Register("touch", Touch)
 }
 
-func Touch() {
+func Touch() common.HandlerResult {
 	args := os.Args[1:]
 
 	// Check each file argument - block if file already exists
@@ -31,5 +31,5 @@ func Touch() {
 	}
 
 	// All files are new, pass through to real touch
-	common.ExecReal("touch", args)
+	return common.PassThru
 }

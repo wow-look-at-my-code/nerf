@@ -12,7 +12,7 @@ func init() {
 	common.Register("fdfind", Fdfind)
 }
 
-func Fdfind() {
+func Fdfind() common.HandlerResult {
 	cmd := "fd"
 	if strings.HasSuffix(os.Args[0], "fdfind") {
 		cmd = "fdfind"
@@ -28,4 +28,5 @@ func Fdfind() {
 	}
 
 	common.ExecReal(cmd, os.Args[1:])
+	return common.Handled
 }

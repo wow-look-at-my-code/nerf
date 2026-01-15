@@ -12,7 +12,7 @@ func init() {
 	common.Register("gh", Gh)
 }
 
-func Gh() {
+func Gh() common.HandlerResult {
 	args := os.Args[1:]
 
 	// Block "gh run watch" - should use gh wait-ci instead
@@ -24,5 +24,5 @@ func Gh() {
 		}
 	}
 
-	common.ExecReal("gh", args)
+	return common.PassThru
 }

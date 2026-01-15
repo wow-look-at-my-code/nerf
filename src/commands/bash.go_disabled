@@ -1,0 +1,108 @@
+package commands
+
+import (
+	"fmt"
+	"os"
+	"strings"
+
+	"path_prefix/src/common"
+)
+
+func init() {
+	common.Register("bash", Bash)
+}
+
+// Bash wraps bash to inject set -euo pipefail for -c commands
+func Bash() common.HandlerResult {
+	os.Stderr.WriteString("DEBUG bash: handler called\n")
+	args := os.Args[1:]
+
+	// Find -c flag and its command
+	// Claude Code uses: bash -c -l "command" (with -l between -c and command)
+	cIdx := -1
+	for i, arg := range args {
+		if arg == "-c" {
+			cIdx = i
+			break
+		}
+	}
+
+	if cIdx >= 0 {
+		os.Stderr.WriteString("DEBUG bash: cIdx=" + fmt.Sprint(cIdx) + " args=" + fmt.Sprint(args) + "\n")
+		// Find the command string (first non-option arg after -c)
+		cmdIdx := -1
+		for i := cIdx + 1; i < len(args); i++ {
+			if !strings.HasPrefix(args[i], "-") {
+				cmdIdx = i
+				break
+			}
+		}
+		os.Stderr.WriteString("DEBUG bash: cmdIdx=" + fmt.Sprint(cmdIdx) + "\n")
+
+		if cmdIdx >= 0 {
+			cmd := args[cmdIdx]
+			os.Stderr.WriteString("DEBUG bash: found -c, cmd: " + cmd[:min(100, len(cmd))] + "\n")
+
+			// Skip if already has safety options
+			if strings.HasPrefix(cmd, "set -e") || strings.Contains(cmd, "set -euo pipefail") {
+				os.Stderr.WriteString("DEBUG bash: already has safety options\n")
+				common.ExecReal("bash", args)
+				return common.Handled
+			}
+
+			// Find eval and inject set -e INSIDE the eval'd string
+			// Claude Code uses: eval 'user-command'
+			newCmd := injectIntoEvalBash(cmd)
+			args[cmdIdx] = newCmd
+			os.Stderr.WriteString("DEBUG bash: injected, full new cmd: " + newCmd + "\n")
+			common.ExecReal("bash", args)
+			return common.Handled
+		}
+	}
+
+	// Check for login shell without -c - skip injection
+	for _, arg := range args {
+		if arg == "-l" || arg == "--login" {
+			return common.PassThru
+		}
+	}
+
+	// No -c flag, pass through
+	return common.PassThru
+}
+
+// injectIntoEvalBash finds eval command and injects set -euo pipefail inside its argument
+func injectIntoEvalBash(cmd string) string {
+	tokens := tokenizeShell(cmd)
+
+	os.Stderr.WriteString("DEBUG bash tokens: ")
+	for _, t := range tokens {
+		os.Stderr.WriteString(fmt.Sprintf("[%q q=%v s=%d e=%d] ", t.text, t.isQuoted, t.start, t.end))
+	}
+	os.Stderr.WriteString("\n")
+
+	// Find 'eval' token followed by its argument
+	for i, tok := range tokens {
+		if tok.text == "eval" && i+1 < len(tokens) {
+			arg := tokens[i+1]
+			os.Stderr.WriteString(fmt.Sprintf("DEBUG bash eval arg: text=%q isQuoted=%v start=%d end=%d\n", arg.text, arg.isQuoted, arg.start, arg.end))
+			if arg.isQuoted {
+				// Wrap user command in subshell with set -e INSIDE the subshell
+				// so errexit actually works (doesn't inherit properly from parent)
+				newArg := "( set -euxo pipefail; " + arg.text + " )"
+				// Reconstruct the command with modified eval argument
+				var result strings.Builder
+				result.WriteString(cmd[:arg.start])
+				// Re-quote the argument using single quotes (escape any single quotes in content)
+				result.WriteByte('\'')
+				result.WriteString(strings.ReplaceAll(newArg, "'", "'\\''"))
+				result.WriteByte('\'')
+				result.WriteString(cmd[arg.end:])
+				return result.String()
+			}
+		}
+	}
+
+	// No eval with quoted arg found, inject at start as fallback
+	return "set -euxo pipefail; " + cmd
+}

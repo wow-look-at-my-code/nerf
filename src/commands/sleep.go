@@ -10,7 +10,8 @@ func init() {
 	common.Register("sleep", Sleep)
 }
 
-func Sleep() {
+func Sleep() common.HandlerResult {
 	// Sleep 1 second max to prevent tight loops but don't waste time
 	time.Sleep(1 * time.Second)
+	return common.Handled
 }

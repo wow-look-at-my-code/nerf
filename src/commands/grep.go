@@ -6,6 +6,6 @@ func init() {
 	common.Register("grep", Grep)
 }
 
-func Grep() {
-	common.RunBufferedFilter("grep")
+func Grep() common.HandlerResult {
+	return common.RunBufferedFilter("grep")
 }
