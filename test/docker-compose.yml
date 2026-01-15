@@ -6,7 +6,7 @@ services:
         FROM alpine:latest
 
         # Install dependencies
-        RUN apk add --no-cache bash bats bats-support bats-assert fd util-linux
+        RUN apk add --no-cache bash zsh bats bats-support bats-assert fd util-linux
 
         COPY test/mocks/* /usr/local/bin/
 

@@ -22,7 +22,7 @@ var dangerousFlags = []string{
 	"-okdir",
 }
 
-func Find() {
+func Find() common.HandlerResult {
 	// Check for dangerous flags
 	for _, arg := range os.Args[1:] {
 		argLower := strings.ToLower(arg)
@@ -86,7 +86,8 @@ func Find() {
 
 	// Build final args: fd [options] [pattern] [path...]
 	if pattern != "" {
-		fdArgs = append(fdArgs, pattern)
+		// Use glob mode (-g) since find -name uses glob patterns
+		fdArgs = append(fdArgs, "-g", pattern)
 	}
 	fdArgs = append(fdArgs, paths...)
 
@@ -102,4 +103,5 @@ func Find() {
 
 	argv := append([]string{"fd"}, fdArgs...)
 	syscall.Exec(fdPath, argv, os.Environ())
+	return common.Handled
 }

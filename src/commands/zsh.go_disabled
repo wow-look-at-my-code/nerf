@@ -1,0 +1,243 @@
+package commands
+
+import (
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"strings"
+
+	"path_prefix/src/common"
+)
+
+func init() {
+	common.Register("zsh", Zsh)
+}
+
+// Zsh wraps zsh to inject set -euo pipefail for -c commands and stdin
+func Zsh() common.HandlerResult {
+	os.Stderr.WriteString("DEBUG zsh: handler called\n")
+	args := os.Args[1:]
+
+	// Find -c flag and its command
+	// Claude Code uses: zsh -c -l "command" (with -l between -c and command)
+	cIdx := -1
+	for i, arg := range args {
+		if arg == "-c" {
+			cIdx = i
+			break
+		}
+	}
+
+	if cIdx >= 0 {
+		os.Stderr.WriteString("DEBUG zsh: cIdx=" + fmt.Sprint(cIdx) + " args=" + fmt.Sprint(args) + "\n")
+		// Find the command string (first non-option arg after -c)
+		cmdIdx := -1
+		for i := cIdx + 1; i < len(args); i++ {
+			if !strings.HasPrefix(args[i], "-") {
+				cmdIdx = i
+				break
+			}
+		}
+		os.Stderr.WriteString("DEBUG zsh: cmdIdx=" + fmt.Sprint(cmdIdx) + "\n")
+
+		if cmdIdx >= 0 {
+			cmd := args[cmdIdx]
+			os.Stderr.WriteString("DEBUG zsh: found -c, cmd: " + cmd[:min(100, len(cmd))] + "\n")
+
+			// Skip if already has safety options
+			if strings.HasPrefix(cmd, "set -e") || strings.Contains(cmd, "set -euo pipefail") {
+				os.Stderr.WriteString("DEBUG zsh: already has safety options, passing through\n")
+				common.ExecReal("zsh", args)
+				return common.Handled
+			}
+
+			// Find eval and inject set -e INSIDE the eval'd string
+			// Claude Code uses: eval 'user-command'
+			newCmd := injectIntoEval(cmd)
+			args[cmdIdx] = newCmd
+			os.Stderr.WriteString("DEBUG zsh: injected, new cmd: " + newCmd[:min(100, len(newCmd))] + "\n")
+			common.ExecReal("zsh", args)
+			return common.Handled
+		}
+	}
+
+	// Check for login shell without -c - skip injection
+	for _, arg := range args {
+		if arg == "-l" || arg == "--login" {
+			return common.PassThru
+		}
+	}
+
+	// Check if stdin is a pipe (non-interactive command via stdin)
+	stat, _ := os.Stdin.Stat()
+	os.Stderr.WriteString("DEBUG zsh: mode=" + stat.Mode().String() + "\n")
+	if (stat.Mode() & os.ModeCharDevice) == 0 {
+		// Stdin has data - read it, prepend safety options, pass to real zsh
+		input, err := io.ReadAll(os.Stdin)
+		if err != nil || len(input) == 0 {
+			return common.PassThru
+		}
+
+		// Skip if already has safety options
+		inputStr := string(input)
+		if strings.HasPrefix(inputStr, "set -e") || strings.Contains(inputStr, "set -euo pipefail") {
+			runZshWithStdin(args, input)
+			return common.Handled
+		}
+
+		// Prepend safety options
+		modified := append([]byte("set -euo pipefail\n"), input...)
+		runZshWithStdin(args, modified)
+		return common.Handled
+	}
+
+	// No -c flag and no stdin pipe, pass through (interactive shell)
+	return common.PassThru
+}
+
+// shellToken represents a parsed shell token
+type shellToken struct {
+	text     string
+	start    int // position in original string
+	end      int
+	isQuoted bool
+	quote    byte // 0, '\'' or '"'
+}
+
+// tokenizeShell parses a shell command into tokens, respecting quoting
+func tokenizeShell(cmd string) []shellToken {
+	var tokens []shellToken
+	i := 0
+	for i < len(cmd) {
+		// Skip whitespace
+		for i < len(cmd) && (cmd[i] == ' ' || cmd[i] == '\t') {
+			i++
+		}
+		if i >= len(cmd) {
+			break
+		}
+
+		start := i
+		var text strings.Builder
+
+		// Check for operators
+		if cmd[i] == '&' || cmd[i] == '|' || cmd[i] == ';' || cmd[i] == '<' || cmd[i] == '>' {
+			// Handle multi-char operators
+			if i+1 < len(cmd) && (cmd[i:i+2] == "&&" || cmd[i:i+2] == "||" || cmd[i:i+2] == ">|") {
+				tokens = append(tokens, shellToken{text: cmd[i : i+2], start: i, end: i + 2})
+				i += 2
+			} else {
+				tokens = append(tokens, shellToken{text: string(cmd[i]), start: i, end: i + 1})
+				i++
+			}
+			continue
+		}
+
+		// Parse a word (possibly quoted)
+		isQuoted := false
+		var quote byte
+		for i < len(cmd) {
+			c := cmd[i]
+
+			if c == '\'' && quote == 0 {
+				// Start single quote
+				quote = '\''
+				isQuoted = true
+				i++
+			} else if c == '\'' && quote == '\'' {
+				// End single quote
+				quote = 0
+				i++
+			} else if c == '"' && quote == 0 {
+				// Start double quote
+				quote = '"'
+				isQuoted = true
+				i++
+			} else if c == '"' && quote == '"' {
+				// End double quote
+				quote = 0
+				i++
+			} else if c == '\\' && quote != '\'' && i+1 < len(cmd) {
+				// Escape (not in single quotes)
+				text.WriteByte(cmd[i+1])
+				i += 2
+			} else if quote == 0 && (c == ' ' || c == '\t' || c == '&' || c == '|' || c == ';' || c == '<' || c == '>') {
+				// End of unquoted word
+				break
+			} else {
+				text.WriteByte(c)
+				i++
+			}
+		}
+
+		if text.Len() > 0 || isQuoted {
+			tokens = append(tokens, shellToken{
+				text:     text.String(),
+				start:    start,
+				end:      i,
+				isQuoted: isQuoted,
+				quote:    quote,
+			})
+		}
+	}
+	return tokens
+}
+
+// injectIntoEval finds eval command and injects set -euo pipefail inside its argument
+func injectIntoEval(cmd string) string {
+	tokens := tokenizeShell(cmd)
+
+	// Debug: print tokens
+	os.Stderr.WriteString("DEBUG tokens: ")
+	for _, t := range tokens {
+		os.Stderr.WriteString(fmt.Sprintf("[%q q=%v] ", t.text, t.isQuoted))
+	}
+	os.Stderr.WriteString("\n")
+
+	// Find 'eval' token followed by its argument
+	for i, tok := range tokens {
+		if tok.text == "eval" && i+1 < len(tokens) {
+			arg := tokens[i+1]
+			os.Stderr.WriteString(fmt.Sprintf("DEBUG eval arg: text=%q isQuoted=%v start=%d end=%d\n", arg.text, arg.isQuoted, arg.start, arg.end))
+			if arg.isQuoted {
+				// Inject inside the eval argument
+				newArg := "set -euxo pipefail; " + arg.text
+				// Reconstruct the command with modified eval argument
+				var result strings.Builder
+				result.WriteString(cmd[:arg.start])
+				// Re-quote the argument using single quotes (escape any single quotes in content)
+				result.WriteByte('\'')
+				result.WriteString(strings.ReplaceAll(newArg, "'", "'\\''"))
+				result.WriteByte('\'')
+				result.WriteString(cmd[arg.end:])
+				return result.String()
+			}
+		}
+	}
+
+	// No eval with quoted arg found, inject at start as fallback
+	os.Stderr.WriteString("DEBUG: no eval found, injecting at start\n")
+	return "set -euo pipefail; " + cmd
+}
+
+func runZshWithStdin(args []string, input []byte) {
+	path, err := exec.LookPath("zsh")
+	if err != nil {
+		os.Stderr.WriteString("zsh: command not found\n")
+		os.Exit(127)
+	}
+
+	cmd := exec.Command(path, args...)
+	cmd.Stdin = strings.NewReader(string(input))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			os.Exit(exitErr.ExitCode())
+		}
+		os.Exit(1)
+	}
+	os.Exit(0)
+}

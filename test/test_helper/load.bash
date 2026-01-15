@@ -5,7 +5,7 @@ setup() {
 }
 
 trun() {
-    run timeout 5 "$@"
+    run env CLAUDECODE=1 timeout 5 "$@"
 }
 
 # Cross-platform script wrapper to simulate a terminal

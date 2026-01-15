@@ -8,8 +8,14 @@ import (
 	"syscall"
 )
 
-// Init filters our directory out of PATH and returns the command name from argv[0]
+// originalPATH stores the PATH before filtering, so child processes can use wrappers
+var originalPATH string
+
+// Init filters our directory out of PATH for LookPath and returns the command name from argv[0]
 func Init() string {
+	// Save original PATH for child processes
+	originalPATH = os.Getenv("PATH")
+
 	// Get the directory containing this binary
 	execPath, err := os.Executable()
 	if err != nil {
@@ -18,8 +24,9 @@ func Init() string {
 	selfDir := filepath.Dir(execPath)
 
 	// Filter our directory and subdirectories out of PATH to prevent infinite recursion
+	// This filtered PATH is only used for LookPath, not passed to children
 	var filtered []string
-	for _, p := range strings.Split(os.Getenv("PATH"), ":") {
+	for _, p := range strings.Split(originalPATH, ":") {
 		if !strings.HasPrefix(p, selfDir) {
 			filtered = append(filtered, p)
 		}
@@ -27,6 +34,19 @@ func Init() string {
 	os.Setenv("PATH", strings.Join(filtered, ":"))
 
 	return filepath.Base(os.Args[0])
+}
+
+// environ returns the environment with original PATH restored for child processes
+func environ() []string {
+	env := os.Environ()
+	for i, e := range env {
+		if strings.HasPrefix(e, "PATH=") {
+			env[i] = "PATH=" + originalPATH
+			return env
+		}
+	}
+	// PATH not found, add it
+	return append(env, "PATH="+originalPATH)
 }
 
 // ShouldWrap returns true if CLAUDECODE is set
@@ -42,13 +62,13 @@ func ExecReal(cmd string, args []string) {
 		os.Exit(127)
 	}
 	argv := append([]string{cmd}, args...)
-	syscall.Exec(path, argv, os.Environ())
+	syscall.Exec(path, argv, environ())
 }
 
 // Exec execs the given path, never returns
 func Exec(path string, args []string) {
 	argv := append([]string{path}, args...)
-	err := syscall.Exec(path, argv, os.Environ())
+	err := syscall.Exec(path, argv, environ())
 	if err != nil {
 		os.Stderr.WriteString("exec failed: " + err.Error() + "\n")
 		os.Exit(1)

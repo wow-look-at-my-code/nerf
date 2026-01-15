@@ -15,10 +15,15 @@ func main() {
 
 	if !common.ShouldWrap() {
 		common.ExecReal(cmd, os.Args[1:])
+		return
 	}
 
 	if handler, ok := common.Handlers[cmd]; ok {
-		handler()
+		if handler().IsHandled() {
+			return
+		}
+		// Handler returned PassThru, pass through to real command
+		common.ExecReal(cmd, os.Args[1:])
 		return
 	}
 

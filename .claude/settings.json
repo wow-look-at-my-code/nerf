@@ -1,7 +1,8 @@
 {
   "permissions": {
     "deny": [
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(go:*)"
     ]
   }
 }

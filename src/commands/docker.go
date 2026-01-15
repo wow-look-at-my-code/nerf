@@ -34,7 +34,7 @@ func findSubcommand(args []string) string {
 	return ""
 }
 
-func Docker() {
+func Docker() common.HandlerResult {
 	args := os.Args[1:]
 
 	// Check for compose subcommand
@@ -79,4 +79,5 @@ func Docker() {
 	}
 
 	common.ExecReal("docker", args)
+	return common.Handled
 }

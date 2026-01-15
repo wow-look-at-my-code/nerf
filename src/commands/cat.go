@@ -23,35 +23,29 @@ func countTokens(s string) int {
 	return len(strings.Fields(s))
 }
 
-func Cat() {
+func Cat() common.HandlerResult {
 	// Check if stdout is a pipe (not a terminal)
 	stat, _ := os.Stdout.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		// Output is piped, pass through to real cat
-		common.ExecReal("cat", os.Args[1:])
+		return common.PassThru
 	}
 
 	// No file arguments means stdin - pass through
 	if len(os.Args) < 2 {
-		common.ExecReal("cat", os.Args[1:])
+		return common.PassThru
 	}
 
 	// Process each file
+	anyTruncated := false
 	for _, filename := range os.Args[1:] {
 		if strings.HasPrefix(filename, "-") {
 			// It's a flag, pass through to real cat
-			common.ExecReal("cat", os.Args[1:])
+			return common.PassThru
 		}
 
 		file, err := os.Open(filename)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "cat: %s: %v\n", filename, err)
-			continue
-		}
-
-		stat, err := file.Stat()
-		if err != nil {
-			file.Close()
 			fmt.Fprintf(os.Stderr, "cat: %s: %v\n", filename, err)
 			continue
 		}
@@ -67,6 +61,7 @@ func Cat() {
 
 			if lines >= maxLines || tokens+lineTokens > maxTokens {
 				truncated = true
+				anyTruncated = true
 				break
 			}
 
@@ -78,9 +73,12 @@ func Cat() {
 		file.Close()
 
 		if truncated {
-			remaining := stat.Size()
-			fmt.Fprintf(os.Stderr, "\n... truncated after %d lines.\n", lines)
-			fmt.Fprintf(os.Stderr, "Use the Read tool to read the full file (%d bytes): %s\n", remaining, filename)
+			fmt.Fprintf(os.Stderr, "\nFile truncated after %d lines. Use the Read tool instead: %s\n", lines, filename)
 		}
 	}
+
+	if anyTruncated {
+		os.Exit(1)
+	}
+	return common.Handled
 }

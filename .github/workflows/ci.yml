@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew tap wow-look-at-my-code/ext-pkgs
-          brew install bats-core bats-support bats-assert fd coreutils
+          brew install bats-core bats-support bats-assert fd coreutils zsh
 
       - name: Build
         run: make

@@ -6,6 +6,6 @@ func init() {
 	common.Register("tail", Tail)
 }
 
-func Tail() {
-	common.RunBufferedFilter("tail")
+func Tail() common.HandlerResult {
+	return common.RunBufferedFilter("tail")
 }
