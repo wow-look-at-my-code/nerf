@@ -29,9 +29,11 @@ func Init() string {
 	return filepath.Base(os.Args[0])
 }
 
-// ShouldWrap returns true if CLAUDECODE is set
+// ShouldWrap returns true if CLAUDECODE is set and we're not inside a script.
+// When bash runs a script, it sets NERF_IN_SCRIPT to allow commands inside
+// the script to use their real implementations.
 func ShouldWrap() bool {
-	return os.Getenv("CLAUDECODE") != ""
+	return os.Getenv("CLAUDECODE") != "" && os.Getenv("NERF_IN_SCRIPT") == ""
 }
 
 // ExecReal finds and execs the real command, never returns
