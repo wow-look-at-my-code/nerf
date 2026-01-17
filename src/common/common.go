@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,9 +30,64 @@ func Init() string {
 	return filepath.Base(os.Args[0])
 }
 
-// ShouldWrap returns true if CLAUDECODE is set
+// ShouldWrap returns true if CLAUDECODE is set and we're running directly from Claude.
+// Fast path: if NERF_IN_SCRIPT is set, we're inside a script - don't wrap.
+// Slow path: check if grandparent process is "claude".
 func ShouldWrap() bool {
-	return os.Getenv("CLAUDECODE") != ""
+	if os.Getenv("CLAUDECODE") == "" {
+		return false
+	}
+	if os.Getenv("NERF_IN_SCRIPT") != "" {
+		return false
+	}
+	return isGrandparentClaude()
+}
+
+// isGrandparentClaude checks if the grandparent process is Claude Code.
+// This detects: command → shell → claude (direct invocation)
+// vs: command → bash (script) → shell → claude (inside a script)
+func isGrandparentClaude() bool {
+	ppid := os.Getppid()
+
+	// Read parent's parent PID from /proc
+	statPath := filepath.Join("/proc", fmt.Sprintf("%d", ppid), "stat")
+	data, err := os.ReadFile(statPath)
+	if err != nil {
+		// Can't read /proc, fall back to assuming we should wrap
+		return true
+	}
+
+	// Parse stat file to get PPID (4th field)
+	// Format: pid (comm) state ppid ...
+	fields := strings.Fields(string(data))
+	if len(fields) < 4 {
+		return true
+	}
+
+	// Find the closing paren of comm field, PPID is after that
+	statStr := string(data)
+	closeParenIdx := strings.LastIndex(statStr, ")")
+	if closeParenIdx == -1 {
+		return true
+	}
+	afterComm := strings.Fields(statStr[closeParenIdx+1:])
+	if len(afterComm) < 2 {
+		return true
+	}
+	grandppidStr := afterComm[1] // state is [0], ppid is [1]
+
+	var grandppid int
+	fmt.Sscanf(grandppidStr, "%d", &grandppid)
+
+	// Check if grandparent is claude
+	commPath := filepath.Join("/proc", fmt.Sprintf("%d", grandppid), "comm")
+	comm, err := os.ReadFile(commPath)
+	if err != nil {
+		return true
+	}
+
+	name := strings.TrimSpace(string(comm))
+	return name == "claude"
 }
 
 // ExecReal finds and execs the real command, never returns
