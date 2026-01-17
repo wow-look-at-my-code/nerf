@@ -3,12 +3,18 @@ services:
     build:
       context: ..
       dockerfile_inline: |
+        FROM golang:alpine AS builder
+        WORKDIR /build
+        COPY test/mocks/claude.go .
+        RUN go build -o claude claude.go
+
         FROM alpine:latest
 
         # Install dependencies
         RUN apk add --no-cache bash bats bats-support bats-assert fd util-linux
 
-        COPY test/mocks/* /usr/local/bin/
+        COPY test/mocks/docker test/mocks/docker-compose test/mocks/gh test/mocks/fdfind /usr/local/bin/
+        COPY --from=builder /build/claude /usr/local/bin/
 
         WORKDIR /app
     volumes:
